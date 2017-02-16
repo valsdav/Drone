@@ -1,0 +1,4 @@
+To compile:
+
+cmake .
+make
