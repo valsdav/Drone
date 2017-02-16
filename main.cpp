@@ -14,7 +14,9 @@ double L_arm = 0.62;
 double I_X = 0.06;
 double I_Y = 0.06;
 double dt = 0.1;
-double dF = 0.1;
+//350 is the default number of step
+double Fstep = weight / 350;
+double dF = 0;
 
 //dynamic variables
 double angle_X = 0;
@@ -158,7 +160,7 @@ int main(int argc, char* argv[]){
         angle_Y = atof(argv[2]);
         omega_X = atof(argv[3]);
         omega_Y = atof(argv[4]);
-        dF = atof(argv[5]);
+        dF = atoi(argv[5]) * Fstep;
         dt = atof(argv[6]);
         seconds = atoi(argv[7]);
     }
