@@ -1,4 +1,19 @@
 To compile:
+===========
 
 cmake .
 make
+
+To simulate a drone:
+===================
+./drone angleX angleY omegaX omegaY stepForce stepTime totalTime output_filename
+
+To view the results:
+====================
+./print-drone column1 column2 ... ... filename
+
+
+Example:
+=======
+./drone 20 0 0 0 3 0.4 60 data
+./print-drone angleX posZ velZ velX FtotX data
