@@ -1,6 +1,7 @@
 #include <iostream>
-#include <cmath>
+#include <math.h>
 #include <vector>
+#include <string>
 #include <map>
 #include <fstream>
 using namespace std;
@@ -37,14 +38,14 @@ double acc_Y = 0;
 double acc_Z = 0;
 
 //: F1-F3 x axis. F2-F4 y axis
-int F1_base = 350;
-int F2_base = 350;
-int F3_base = 350;
-int F4_base = 350;
-double F1 = 0;
-double F2 = 0;
-double F3 = 0;
-double F4 = 0;
+double F1_base = 350;
+double F2_base = 350;
+double F3_base = 350;
+double F4_base = 350;
+double F1 = F1_base;
+double F2 = F2_base;
+double F3 = F3_base;
+double F4 = F4_base;
 double Ftot_X = 0;
 double Ftot_Y = 0;
 double Ftot_Z = 0;
@@ -77,29 +78,36 @@ vector<double> F4_hist;
 
 
 double changeForcesOmega(){
-    F1 = F1_base + floor(angle_X)*dF + dF* floor(omega_X/10) +1;
-    F3 = F3_base - floor(angle_X)*dF - dF* floor(omega_X/10) +1 ;
-    F2 = F2_base + floor(angle_Y)*dF + dF* floor(omega_Y/10) +1 ;
-    F2 = F4_base - floor(angle_Y)*dF - dF* floor(omega_Y/10) +1 ;
+    F1 = F1_base + round(angle_X)*dF + dF* round(omega_X/10) ;
+    F3 = F3_base - round(angle_X)*dF - dF* round(omega_X/10)  ;
+    F2 = F2_base + round(angle_Y)*dF + dF* round(omega_Y/10)  ;
+    F2 = F4_base - round(angle_Y)*dF - dF* round(omega_Y/10)  ;
 }
 
 double changeForcesNormal(){
-    F1 = F1_base + floor(angle_X)*dF ;
-    F3 = F3_base - floor(angle_X)*dF ;
-    F2 = F2_base + floor(angle_Y)*dF ;
-    F4 = F4_base - floor(angle_Y)*dF ;
+    F1 = F1_base + round(angle_X)*dF ;
+    F3 = F3_base - round(angle_X)*dF ;
+    F2 = F2_base + round(angle_Y)*dF ;
+    F4 = F4_base - round(angle_Y)*dF ;
 }
 
 double changeForcesWeight(){
-    double deltaW = ((-Ftot_Z)/4) ;
-    F1 = F1_base + floor(angle_X)*dF + deltaW ;
-    F3 = F3_base - floor(angle_X)*dF + deltaW;
-    F2 = F2_base + floor(angle_Y)*dF + deltaW;
-    F4 = F4_base - floor(angle_Y)*dF + deltaW;
+    F1 = F1_base + round(angle_X)*dF;
+    F3 = F3_base - round(angle_X)*dF;
+    F2 = F2_base + round(angle_Y)*dF;
+    F4 = F4_base - round(angle_Y)*dF;
+    double angleFactor = cos(angle_X * PI / 180.0) * cos(angle_Y * PI / 180.0);
+    double deltaForce = weight/angleFactor - ((F1+F2+F3+F4)*Fstep) ;
+    double deltaW = round(deltaForce / (4 * Fstep));
+    (*curr_data)["deltaW"] = deltaW ;
+    F1 += deltaW;
+    F2 += deltaW;
+    F3 += deltaW;
+    F4 += deltaW;
 }
 
 double changeForces(){
-   // changeForcesNormal();
+    //changeForcesNormal();
     //changeForcesOmega();
     changeForcesWeight();
     //saving real forces values
@@ -152,20 +160,22 @@ double calculateCentreOfMassDynamic() {
 }
 
 
-double calculateTotalForce() {
-    Ftot_X = (F1 + F2 + F3 + F4) * Fstep * sin(angle_X * PI / 180);
-    Ftot_Y = (F1 + F2 + F3 + F4) * Fstep * sin(angle_Y * PI / 180);
-    Ftot_Z = (F1 + F2 + F3 + F4) * Fstep * cos(angle_X * PI / 180) * cos(angle_Y * PI / 180) - weight;
+double calculateTotalForces() {
+    Ftot_X = (F1 + F2 + F3 + F4) * Fstep * sin(angle_X * PI / 180.0);
+    Ftot_Y = (F1 + F2 + F3 + F4) * Fstep * sin(angle_Y * PI / 180.0);
+    Ftot_Z = (F1 + F2 + F3 + F4) * Fstep * cos(angle_X * PI / 180.0) * cos(angle_Y * PI / 180.0) - weight;
     (*curr_data)["FtotX"] = Ftot_X;
     (*curr_data)["FtotY"] = Ftot_Y;
     (*curr_data)["FtotZ"] = Ftot_Z;
+    (*curr_data)["Ftot"] = (F1 + F2 + F3 + F4) * Fstep;
 }
 
 
 int main(int argc, char* argv[]){
-    int seconds = 0;
-    if (argc != 8){
-        cout << "Insert: angle_X angle_Y omega_X omega_Y dF dT seconds" <<endl;
+    double seconds = 0;
+    string filename;
+    if (argc != 9){
+        cout << "Insert: angle_X angle_Y omega_X omega_Y dF dT seconds name" <<endl;
         return 1;
     }else{
         angle_X = atof(argv[1]);
@@ -174,24 +184,25 @@ int main(int argc, char* argv[]){
         omega_Y = atof(argv[4]);
         dF = atoi(argv[5]);
         dt = atof(argv[6]);
-        seconds = atoi(argv[7]);
+        seconds = atof(argv[7]);
+        filename = argv[8];
     }
 
     cout << "Starting process..." << endl;
     double time = 0;
-    cout << "angle_X\t\tangle_Y" <<endl;
     while (time < seconds){
         curr_data = new map<string, double>();
         (*curr_data)["t"] = time;
         changeForces();
-        calculateTotalForce();
+        calculateTotalForces();
         calculateCentreOfMassDynamic();
         calculateRotationalDynamic();
         time += dt;
         data.push_back(*curr_data);
+        cout << "#";
     }
     cout << "\nWriting output..." << endl;
-    ofstream out("data");
+    ofstream out(filename);
     for (map<string, double>::iterator it = curr_data->begin(); it!=curr_data->end(); it++){
         out << it->first << " ";
     }
@@ -204,6 +215,3 @@ int main(int argc, char* argv[]){
     }
     out.close();
 }
-
-
-
