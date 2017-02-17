@@ -2,11 +2,17 @@
 
 import matplotlib.pyplot as plt
 import sys
+import pandas as pd
+
+df = pd.read_csv(open("data"), sep=" ")
 
 
-data =[[float(x.strip()) for x in open(file)] for file in sys.argv[1:]]
+plt.figure(figsize=(13,10))
+for arg in sys.argv[1:]:
+    plt.plot(df["t"], df[arg], label=arg)
+    plt.xlabel("t")
 
-for d in data:
-    plt.plot(d)
+plt.legend(loc=4)
+plt.grid(True)
 
 plt.show()
