@@ -6,7 +6,7 @@ make
 
 To simulate a drone:
 ===================
-./drone angleX angleY omegaX omegaY stepForce stepTime totalTime output_filename
+./drone angleX angleY omegaX omegaY stepForce NstepTimeForCorrection stepTimeSimulation totalTime output_filename
 
 To view the results:
 ====================
@@ -15,5 +15,8 @@ To view the results:
 
 Example:
 =======
-./drone 20 0 0 0 3 0.4 60 data
+Simulate a drone with angleX = 20 at the beginning with a correction of 3*stepForce
+every 0.1 s = 10* 0.01  for 30 seconds.
+
+./drone 20 0 0 0 3 10 0.01 30 data
 ./print-drone angleX posZ velZ velX FtotX data

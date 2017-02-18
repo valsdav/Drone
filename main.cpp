@@ -91,6 +91,8 @@ double changeForcesNormal(){
     F4 = F4_base - round(angle_Y)*dF ;
 }
 
+double deltaW = 0;
+
 double changeForcesWeight(){
     F1 = F1_base + round(angle_X)*dF;
     F3 = F3_base - round(angle_X)*dF;
@@ -98,23 +100,26 @@ double changeForcesWeight(){
     F4 = F4_base - round(angle_Y)*dF;
     double angleFactor = cos(angle_X * PI / 180.0) * cos(angle_Y * PI / 180.0);
     double deltaForce = weight/angleFactor - ((F1+F2+F3+F4)*Fstep) ;
-    double deltaW = round(deltaForce / (4 * Fstep));
-    (*curr_data)["deltaW"] = deltaW ;
+    deltaW = round(deltaForce / (4 * Fstep));
     F1 += deltaW;
     F2 += deltaW;
     F3 += deltaW;
     F4 += deltaW;
 }
 
-double changeForces(){
+double changeEnginesForces(){
     //changeForcesNormal();
     //changeForcesOmega();
     changeForcesWeight();
+}
+
+double saveEnginesForces(){
     //saving real forces values
     (*curr_data)["F1"] = F1*Fstep;
     (*curr_data)["F2"] = F2*Fstep;
     (*curr_data)["F3"] = F3*Fstep;
     (*curr_data)["F4"] = F4*Fstep;
+    (*curr_data)["deltaW"] = deltaW;
 }
 
 double calculateRotationalDynamic(){
@@ -173,9 +178,10 @@ double calculateTotalForces() {
 
 int main(int argc, char* argv[]){
     double seconds = 0;
+    int dTcorrection = 0;
     string filename;
-    if (argc != 9){
-        cout << "Insert: angle_X angle_Y omega_X omega_Y dF dT seconds name" <<endl;
+    if (argc != 10){
+        cout << "Insert: angle_X angle_Y omega_X omega_Y dF dTcorrection dTsimulation seconds name" <<endl;
         return 1;
     }else{
         angle_X = atof(argv[1]);
@@ -183,21 +189,29 @@ int main(int argc, char* argv[]){
         omega_X = atof(argv[3]);
         omega_Y = atof(argv[4]);
         dF = atoi(argv[5]);
-        dt = atof(argv[6]);
-        seconds = atof(argv[7]);
-        filename = argv[8];
+        dTcorrection = atoi(argv[6]);
+        dt = atof(argv[7]);
+        seconds = atof(argv[8]);
+        filename = argv[9];
     }
 
     cout << "Starting process..." << endl;
     double time = 0;
+    double steps = dTcorrection;
     while (time < seconds){
         curr_data = new map<string, double>();
         (*curr_data)["t"] = time;
-        changeForces();
+        if (steps == dTcorrection){
+            cout << "*";
+            changeEnginesForces();
+            steps = 0;
+        }
+        saveEnginesForces();
         calculateTotalForces();
         calculateCentreOfMassDynamic();
         calculateRotationalDynamic();
         time += dt;
+        steps += 1;
         data.push_back(*curr_data);
         cout << "#";
     }
