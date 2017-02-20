@@ -77,27 +77,18 @@ vector<double> F3_hist;
 vector<double> F4_hist;
 
 
-double changeForcesOmega(){
-    F1 = F1_base + round(angle_X)*dF + dF* round(omega_X/10) ;
-    F3 = F3_base - round(angle_X)*dF - dF* round(omega_X/10)  ;
-    F2 = F2_base + round(angle_Y)*dF + dF* round(omega_Y/10)  ;
-    F2 = F4_base - round(angle_Y)*dF - dF* round(omega_Y/10)  ;
-}
 
 double changeForcesNormal(){
-    F1 = F1_base + round(angle_X)*dF ;
-    F3 = F3_base - round(angle_X)*dF ;
-    F2 = F2_base + round(angle_Y)*dF ;
-    F4 = F4_base - round(angle_Y)*dF ;
+    F1 = F1_base + (round(angle_X)* dF + dF* round(omega_X));
+    F3 = F3_base - (round(angle_X)* dF + dF* round(omega_X));
+    F2 = F2_base + (round(angle_Y)* dF + dF* round(omega_Y));
+    F4 = F4_base - (round(angle_Y)* dF + dF* round(omega_Y));
 }
 
 double deltaW = 0;
 
 double changeForcesWeight(){
-    F1 = F1_base + round(angle_X)*dF;
-    F3 = F3_base - round(angle_X)*dF;
-    F2 = F2_base + round(angle_Y)*dF;
-    F4 = F4_base - round(angle_Y)*dF;
+    changeForcesNormal();
     double angleFactor = cos(angle_X * PI / 180.0) * cos(angle_Y * PI / 180.0);
     double deltaForce = weight/angleFactor - ((F1+F2+F3+F4)*Fstep) ;
     deltaW = round(deltaForce / (4 * Fstep));
@@ -115,10 +106,10 @@ double changeEnginesForces(){
 
 double saveEnginesForces(){
     //saving real forces values
-    (*curr_data)["F1"] = F1*Fstep;
-    (*curr_data)["F2"] = F2*Fstep;
-    (*curr_data)["F3"] = F3*Fstep;
-    (*curr_data)["F4"] = F4*Fstep;
+    (*curr_data)["F1"] = F1;
+    (*curr_data)["F2"] = F2;
+    (*curr_data)["F3"] = F3;
+    (*curr_data)["F4"] = F4;
     (*curr_data)["deltaW"] = deltaW;
 }
 
@@ -140,7 +131,6 @@ double calculateRotationalDynamic(){
     angle_Y += omega_Y*dt + 0.5 * alpha_Y * dt * dt;
     (*curr_data)["angleX"] = angle_X;
     (*curr_data)["angleY"] = angle_Y;
-
 }
 
 double calculateCentreOfMassDynamic() {
