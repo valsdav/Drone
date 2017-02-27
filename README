@@ -20,3 +20,27 @@ every 0.1 s = 10* 0.01  for 30 seconds.
 
 ./drone 20 0 0 0 3 10 0.01 30 data
 ./print-drone angleX posZ velZ velX FtotX data
+
+
+
+==================
+| Python version |
+==================
+
+To run:
+======
+Insert: angle_X angle_Y omega_X omega_Y dF dTcorrection dTsimulation seconds name
+Where:
+- angle_X:      starting angle around X axis
+- angle_Y:      starting angle around Y axis
+- omega_X:      starting angular speed around X axis
+- omega_Y:      starting angular speed around Y axis
+- dF:           correction step applied to engines power
+- dTcorrection: time in seconds between two engines corrections
+- dTsimulation: not used (but value required)
+- seconds:      simulated run time in seconds
+- name:         output file name
+
+Example:
+=======
+python SimulationDrone.py 20 0 0 0 3 0.1 999 3 data

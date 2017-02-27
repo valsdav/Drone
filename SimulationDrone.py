@@ -1,7 +1,23 @@
+#!/usr/bin/python
+
+import threading
 import math
+import sys
+import time
+import random
+
 class Simulation():
     def __init__(self):
+        
+        # Threading variables
+        self.lock = threading.Lock()
+        self.physicsThread = threading.Thread(target=self.physicsAction, args=())
+        self.forcesThread = threading.Thread(target=self.forcesAction, args=())
+
+        self.runningFlag = True
+
         self.PI = 3.14159265
+        self.physStep = 0.001 # 1 millisec
         
         #static parameters
         self.m = 4
@@ -44,9 +60,13 @@ class Simulation():
         self.Ftot_X = 0
         self.Ftot_Y = 0
         self.Ftot_Z = 0
+        self.dTcorrection = 0
+        self.time = 0
+        self.prevTime = 0
+        self.seconds = 0
+        self.secondsCounter = 0
 
         #output history
-        #vector<map<string, double>> data;
         self.data = []
         self.curr_data = {}
         self.angle_X_history = []
@@ -72,7 +92,62 @@ class Simulation():
         self.F3_hist = []
         self.F4_hist = []
         self.deltaW = 0
+        self.filename = ""
     
+    def physicsAction(self):
+        print "Seconds elapsed in the simulation:"
+        while self.time < self.seconds:
+            # Printing a timer
+            if self.time > self.secondsCounter:
+                print self.secondsCounter
+                self.secondsCounter += 1
+
+            self.curr_data = {}
+            self.curr_data["t"] = self.time;
+            # Extract dt from gaussian random number around physStep
+            self.dt = random.gauss(self.physStep, self.physStep*0.25) #
+            time.sleep(self.dt)
+            self.lock.acquire()
+            self.saveEnginesForces()
+            self.calculateTotalForces()
+            self.calculateCentreOfMassDynamic()
+            self.calculateRotationalDynamic()
+            self.lock.release()
+            self.time += self.dt
+            self.data.append(self.curr_data)
+        print self.time
+        print "Physics thread end."
+        self.saveData()
+
+    def forcesAction(self):
+        while self.time < self.seconds:
+            if self.prevTime + self.dTcorrection < self.time:
+                self.lock.acquire()
+                self.changeForcesWeight()
+                self.lock.release()
+                self.prevTime = self.time
+        print "Forces thread end."
+
+
+    def saveData(self):
+        print "Writing output..."
+        out = open(self.filename,"w")
+    
+        for key in self.curr_data:
+            out.write(key+" ")
+        out.write("\n")
+    
+        for single_data in self.data:
+            for key in single_data:
+                out.write(str(single_data[key]) + " ")
+            out.write("\n")
+        out.close()
+        print "python print-drone.py angleX posZ velZ velX FtotX data"
+
+    def activateThread(self):
+        self.physicsThread.start()
+        self.forcesThread.start()
+
     def changeForcesNormal(self):
         self.F1 = self.F1_base + (int(round(self.angle_X))* self.dF + self.dF* int(round(self.omega_X)))
         self.F3 = self.F3_base - (int(round(self.angle_X))* self.dF + self.dF* int(round(self.omega_X)))
@@ -90,8 +165,6 @@ class Simulation():
         self.F3 += deltaW
         self.F4 += deltaW
 
-    def changeEnginesForces(self):
-        self.changeForcesWeight()
 
     def saveEnginesForces(self):
         #saving real forces values
@@ -152,53 +225,37 @@ class Simulation():
         self.curr_data["Ftot"] = (self.F1 + self.F2 + self.F3 + self.F4) * self.Fstep
 
 def main():
+    len(sys.argv)
+    print sys.argv
+    if len(sys.argv) != 10:
+        print "Insert: angle_X angle_Y omega_X omega_Y dF dTcorrection dTsimulation seconds name"
+        print """Where:
+- angle_X:      starting angle around X axis
+- angle_Y:      starting angle around Y axis
+- omega_X:      starting angular speed around X axis
+- omega_Y:      starting angular speed around Y axis
+- dF:           correction step applied to engines power
+- dTcorrection: time in seconds between two engines corrections
+- dTsimulation: not used (but value required)
+- seconds:      simulated run time in seconds
+- name:         output file name\n"""
+        return 1
+    
     seconds = 0
-    dTcorrection = 0
-    filename = ""
+    
     mySimulation = Simulation()
-    mySimulation.angle_X = 20
-    mySimulation.angle_Y = 0
-    mySimulation.omega_X = 0
-    mySimulation.omega_Y = 0
-    mySimulation.dF = 3
-    dTcorrection = 10
-    mySimulation.dt = 0.01
-    seconds = 30
-    filename = "data"
-
+    mySimulation.angle_X = float(sys.argv[1])
+    mySimulation.angle_Y = float(sys.argv[2])
+    mySimulation.omega_X = float(sys.argv[3])
+    mySimulation.omega_Y = float(sys.argv[4])
+    mySimulation.dF = float(sys.argv[5])
+    mySimulation.dTcorrection = float(sys.argv[6])
+    mySimulation.dt = float(sys.argv[7])
+    mySimulation.seconds = float(sys.argv[8])
+    mySimulation.filename = str(sys.argv[9])
+    
     print "Starting process..."
-    time = 0
-    steps = dTcorrection
-    while time < seconds:
-        #curr_data = new map<string, double>();
-        mySimulation.curr_data = {}
-        mySimulation.curr_data["t"] = time;
-        if steps == dTcorrection:
-            print "*"
-            mySimulation.changeEnginesForces()
-            steps = 0
-            
-        mySimulation.saveEnginesForces()
-        mySimulation.calculateTotalForces()
-        mySimulation.calculateCentreOfMassDynamic()
-        mySimulation.calculateRotationalDynamic()
-        time += mySimulation.dt
-        steps += 1
-        mySimulation.data.append(mySimulation.curr_data)
-        print "#"
-        
-    print "Writing output..."
-    out = open(filename,"w")
-    
-    for key in mySimulation.curr_data:
-        out.write(key+" ")
-    out.write("\n")
-    
-    for single_data in mySimulation.data:
-        for key in single_data:
-            out.write(str(single_data[key]) + " ")
-        out.write("\n")
-    out.close()
+    mySimulation.activateThread()
 
 if __name__ == '__main__':
     main()
